@@ -1,0 +1,339 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="iris_ntr">
+
+	<xacro:property name="model_path" value="package://uav_models/models/iris_ntr/meshes/iris" />
+	<xacro:include filename="$(find uav_models)/models/iris_ntr/sensors.xacro" />
+	<xacro:include filename="$(find uav_models)/models/iris_ntr/materials.xacro" />
+	<xacro:include filename="$(find uav_models)/models/iris_ntr/legs.xacro" />
+	<xacro:include filename="$(find uav_models)/models/iris_ntr/rotors.xacro" />
+	<xacro:include filename="$(find uav_models)/models/iris_ntr/ardu.xacro" />
+   
+	<!-- Macro to add Drone -->
+	<xacro:macro name="iris_ntr" params="lamp 
+									 mono
+									 stereo
+									 depth
+									 rfd
+									 hokuyo
+									 volodyne
+									 ideal_imu">
+    
+    	<xacro:property name="rotor_0_id" value="rotor_0"/>
+		<xacro:property name="rotor_1_id" value="rotor_1"/>
+		<xacro:property name="rotor_2_id" value="rotor_2"/>
+		<xacro:property name="rotor_3_id" value="rotor_3"/>
+		<xacro:property name="base_link_id" value="base_link"/>
+		<xacro:property name="imu_link_id" value="imu_link"/>
+		<xacro:property name="imu_sensor_id" value="imu_sensor"/>
+		
+    
+		<xacro:property name="base_geometry">
+		  <origin xyz="0 0 -0.08" rpy="0 0 0"/>
+		  <geometry>
+		    <box size="0.33 0.47 0.23"/>
+		  </geometry>
+		</xacro:property>
+        
+        
+        <link name="${base_link_id}">
+        
+            <collision name="${base_link_id}_collision">
+				<xacro:insert_block name="base_geometry" />
+            </collision>
+            
+            <visual name="${base_link_id}_visual">
+			  <origin xyz="0 0 0" rpy="0 0 0"/>
+                <geometry>
+                    <mesh filename="${model_path}/iris.dae" scale="1 1 1"/>
+                </geometry>
+            </visual>
+ 
+        </link>
+        
+	    <gazebo reference="${base_link_id}">
+<!-- 	        Collision -->
+<!-- 		    <maxVel>100.0</maxVel> -->
+<!-- 		    <minDepth>0.001</minDepth> -->
+<!-- 		    Friction -->
+<!-- 		    <mu1>1.0</mu1> -->
+<!-- 		    <mu2>1.0</mu2> -->
+		    
+		   <material>Gazebo/DarkGrey</material>
+		</gazebo>
+
+          
+        
+        <xacro:leg
+        	parent="${base_link_id}"
+            leg_id="front_left_leg"
+            xyz="0.123 0.22 -0.11"
+            rpy="0 0 0"
+        />
+
+        <xacro:leg
+        	parent="${base_link_id}"
+            leg_id="front_right_leg"
+            xyz="0.123 -0.22 -0.11"
+            rpy="0 0 0"
+        />
+        
+        <xacro:leg
+        	parent="${base_link_id}"
+            leg_id="rear_left_leg"
+            xyz="-0.140 0.21 -0.11"
+            rpy="0 0 0"
+        />
+        
+        <xacro:leg
+        	parent="${base_link_id}"
+            leg_id="rear_right_leg"
+            xyz="-0.140 -0.21 -0.11"
+            rpy="0 0 0"
+        />
+        
+
+        <!-- arducopter imu -->
+         <link name="${imu_link_id}">
+	      <inertial>
+			<origin xyz="0 0 0" rpy="0 0 0" />	
+	        <mass value="0.15" />
+	        <inertia ixx="0.00001" ixy="0.0" ixz="0.0" iyy="0.00002" iyz="0.0" izz="0.00002" />
+	      </inertial>
+	    </link>
+	    <gazebo reference="${imu_link_id}">
+    	  <gravity>true</gravity>
+	      <sensor name="${imu_sensor_id}" type="imu">
+	        <always_on>true</always_on>
+	        <update_rate>1000</update_rate>
+	    	<topic>__default_topic__</topic>
+	      </sensor>
+	    </gazebo>
+	    <joint name="imu_joint" type="revolute">
+	      <parent link="${base_link_id}" />
+	      <child link="${imu_link_id}" />
+	      <origin xyz="0 0 0" rpy="${pi} 0 0" />
+	      <axis xyz="0 0 1"/>
+	      <dynamics damping="1.0" />
+	      <limit upper="0" lower="0" effort="0" velocity="0" />
+	    </joint>
+ 
+        <link name="base_inertial_link">
+	      <inertial>
+			<origin xyz="0 0 0" rpy="0 0 0" />	
+	        <mass value="0.1" />
+	        <inertia ixx="0.008" ixy="0.0" ixz="0.0" iyy="0.015" iyz="0.0" izz="0.017" />
+	      </inertial>
+	    </link>
+ 	    <joint name="base_inertial_joint" type="fixed">
+	      <parent link="${base_link_id}" />
+	      <child link="base_inertial_link" />
+	      <origin xyz="0 0 0" rpy="0 0 0" />
+	    </joint>
+	    
+	    
+	    
+        <xacro:rotor
+        	parent="${base_link_id}"
+            rotor_id="${rotor_0_id}"
+            xyz="0.13 -0.22 0.023"
+            rpy="0 0 0"
+        />
+        
+        <xacro:rotor
+        	parent="${base_link_id}"
+            rotor_id="${rotor_1_id}"
+            xyz="-0.13 0.2 0.023"
+            rpy="0 0 0"
+        />
+
+        <xacro:rotor
+        	parent="${base_link_id}"
+            rotor_id="${rotor_2_id}"
+            xyz="0.13 0.22 0.023"
+            rpy="0 0 0"
+        />
+
+        <xacro:rotor
+        	parent="${base_link_id}"
+            rotor_id="${rotor_3_id}"
+            xyz="-0.13 -0.2 0.023"
+            rpy="0 0 0"
+        />
+
+		<xacro:arducopter
+			fdm_addr="127.0.0.1"
+    		fdm_port_in="9002"
+    		fdm_port_out="9003"
+    		imu_link="${imu_link_id}"
+    		imu_sensor="${imu_sensor_id}"
+    		rotor_0_id="${rotor_0_id}"
+    		rotor_1_id="${rotor_1_id}"
+    		rotor_2_id="${rotor_2_id}"
+    		rotor_3_id="${rotor_3_id}"
+		/>
+	 
+         
+        <xacro:if value="${lamp}">
+			<xacro:lamp
+				parent_link="${base_link_id}"
+		     	lamp_name="lamp"
+		     	range="8"
+		     	xyz="0.18 0 -0.15"
+		     	rpy="0 -${pi/2} 0">
+			</xacro:lamp>
+        </xacro:if>
+        
+        <xacro:if value="${mono}">
+          <xacro:mono_camera_macro
+		     namespace=""
+		     parent_link="${base_link_id}"
+		     camera_suffix="mono"
+		     frame_rate="30"
+		     horizontal_fov="2.1293"
+		     image_width="752"
+		     image_height="480"
+		     image_format="R8G8B8"
+		     min_distance="0.02"
+		     max_distance="200"
+		     noise_mean="0.0"
+		     noise_stddev="0.007"
+		     enable_visual="true">
+		    <box size="0.01 0.02 0.01"/>
+		     <origin xyz="0.1 0 -0.1" rpy="0 ${pi/2} 0" />
+		  </xacro:mono_camera_macro>
+	    </xacro:if>
+        
+        <xacro:if value="${stereo}">
+	        <xacro:property name="stereo_link_id" value="stereocamera_front_link"/>
+		    <link name="${stereo_link_id}">
+		      <inertial>
+				<origin xyz="0 0 0" rpy="0 0 0" />	
+		        <mass value="0.15" />
+		        <inertia ixx="0.00001" ixy="0.0" ixz="0.0" iyy="0.00002" iyz="0.0" izz="0.00002" />
+		      </inertial>
+		    </link>
+	 	    <joint name="stereocamera_front_joint" type="fixed">
+		      <parent link="${base_link_id}" />
+		      <child link="${stereo_link_id}" />
+		      <origin xyz="0.1 0 -0.1" rpy="0 ${pi/2} 0" />
+		    </joint>
+        
+	       <xacro:stereo_camera_macro
+		      namespace=""
+		      camera_name="camera"
+		      parent_link="${stereo_link_id}"
+		      frame_rate="30"
+		      horizontal_fov="2.1293"
+		      image_width="752"
+		      image_height="480"
+		      image_format="R8G8B8"
+		      min_distance="0.02"
+		      max_distance="200"
+		      noise_mean="0.0"
+		      noise_stddev="0.007"
+		      enable_visual="true"
+		      xyz_left="0 0.055 0"
+		      xyz_right="0 -0.055 0"
+		      baseline="0.11"
+		      rpy="0 0 0" >
+		      <cylinder length="0.01" radius="0.007" />
+		   </xacro:stereo_camera_macro>
+        </xacro:if>
+      
+        <xacro:if value="${depth}"> 
+	        <xacro:camera_depth
+		        namespace=""
+		        parent_link="${base_link_id}"
+		        camera_suffix="depth"
+		        frame_rate="30"
+		        max_range="10"
+		        xyz="0.11 0 -0.01" 
+		        rpy="0 0 0"
+	        />
+	    </xacro:if>
+        
+       <xacro:if value="${rfd}">
+        	<xacro:rangefinder
+        		namespace="/"
+        		parent_link="${base_link_id}" 
+        		lidar_name="rfd_down"
+        		rate="20.0"
+        		hor_samples="1" 
+        		hor_min_angle="-0.01"
+        		hor_max_angle="0.01"
+        		ver_samples="1"
+        		ver_min_angle="-0.01"
+        		ver_max_angle="0.01"
+        		min_range="0.05"
+        		max_range="100.0"
+        		fov="0.02"
+        		gaus_noise="0.02">
+        		<origin xyz="-0.19 0 0" rpy="0 ${pi/2} 0"/>
+        	</xacro:rangefinder>
+        </xacro:if>
+        
+        <xacro:if value="${hokuyo}">
+        	<xacro:hokuyo
+        		namespace="/"
+        		parent_link="${base_link_id}" 
+        		lidar_name="hokuyo"
+        		rate="10.0"
+        		hor_samples="360" 
+        		hor_min_angle="-2.3561944902"
+        		hor_max_angle="2.3561944902"
+        		ver_samples="1"
+        		ver_min_angle="-0.001"
+        		ver_max_angle="0.001"
+        		max_range="10.0">
+        		<origin xyz="0 0 0.13" rpy="0 0 0"/>
+        	</xacro:hokuyo>
+        </xacro:if>
+        
+        <xacro:if value="${volodyne}">
+        	<xacro:velodyne
+        		namespace="/"
+        		parent_link="${base_link_id}" 
+        		lidar_name="velodyne"
+        		rate="10.0"
+        		hor_samples="120" 
+        		hor_min_angle="-${2*pi}"
+        		hor_max_angle="${2*pi}"
+        		ver_samples="32"
+        		ver_min_angle="-0.53527"
+        		ver_max_angle="0.18622"
+        		min_range="0.65"
+        		max_range="10.0"
+        		gaus_noise="0.0">
+        		<origin xyz="0 -0.05 0.09" rpy="0 ${pi/2} 0"/>
+        	</xacro:velodyne>
+        </xacro:if>
+        
+		<xacro:if value="${ideal_imu}" >
+	        <xacro:imu_sensor
+		        namespace="" 
+		        parent_link="${base_link_id}"
+		        imu_suffix="_ideal"
+		        imu_topic="imu_ideal"
+		        rate="100"
+		        gauss_noise="0.02"
+		        xyz="0 0 0"
+		        rpy="0 0 0"
+		    />
+        </xacro:if>
+
+	</xacro:macro> <!-- drone xacro end -->
+
+	<!-- Use Xacro -->
+	<xacro:iris_ntr 
+		lamp="false"
+		mono="false"
+		stereo="false"
+		depth="false"
+		rfd="false"
+		hokuyo="false"
+		volodyne="false"
+		ideal_imu="false"
+	/>
+	
+</robot>

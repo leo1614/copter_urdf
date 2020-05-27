@@ -1,0 +1,81 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+ <!-- Macro to add rotors -->
+ 
+ <xacro:macro name="rotor" params="parent rotor_id xyz rpy">
+ 		<xacro:property name="rotor_link" value="${rotor_id}_link"/>
+ 		
+        <link name="${rotor_link}">
+            <inertial>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <mass value="0.025" />
+                <inertia ixx="9.75e-06" ixy="0.0" ixz="0.0" iyy="0.000166704" iyz="0.0" izz="0.000167604" />
+            </inertial>
+            
+            <collision name="${rotor_id}_collision">
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <geometry>
+                    <cylinder radius="0.13" length="0.005"/>
+                </geometry>
+            </collision>
+            
+            <visual name="${rotor_id}_visual">
+		      <origin xyz="0 0 0" rpy="0 0 0"/>
+		      <geometry>
+		      	<mesh filename="${model_path}/iris_prop_ccw.dae" scale="1 1 1"/>
+		      </geometry>
+	       </visual>
+
+        </link>
+        
+        <joint name="${rotor_id}_joint" type="continuous">
+	        <parent link="${parent}" />
+            <child link="${rotor_link}" />
+            <origin xyz="${xyz}" rpy="${rpy}" />
+            <axis xyz="0 0 1"/>
+            <dynamics damping="0.004" />
+<!--             <limit upper="1e16" lower="-1e16" effort="1e8" velocity="1e8" /> -->
+        </joint>
+
+	  	<gazebo reference="${rotor_link}">
+		    <material>Gazebo/Blue</material>
+		</gazebo>
+        
+        <gazebo>
+       	    <plugin name="${rotor_id}_blade_1" filename="libLiftDragPlugin.so">
+		      <a0>0.3</a0>
+		      <alpha_stall>1.4</alpha_stall>
+		      <cla>4.2500</cla>
+		      <cda>0.10</cda>
+		      <cma>0.00</cma>
+		      <cla_stall>-0.025</cla_stall>
+		      <cda_stall>0.0</cda_stall>
+		      <cma_stall>0.0</cma_stall>
+		      <area>0.002</area>
+		      <air_density>1.2041</air_density>
+		      <cp>0.084 0 0</cp>
+		      <forward>0 1 0</forward>
+		      <upward>0 0 1</upward>
+		      <link_name>${rotor_link}</link_name>
+		    </plugin>
+		    <plugin name="${rotor_id}_blade_2" filename="libLiftDragPlugin.so">
+		      <a0>0.3</a0>
+		      <alpha_stall>1.4</alpha_stall>
+		      <cla>4.2500</cla>
+		      <cda>0.10</cda>
+		      <cma>0.00</cma>
+		      <cla_stall>-0.025</cla_stall>
+		      <cda_stall>0.0</cda_stall>
+		      <cma_stall>0.0</cma_stall>
+		      <area>0.002</area>
+		      <air_density>1.2041</air_density>
+		      <cp>-0.084 0 0</cp>
+		      <forward>0 -1 0</forward>
+		      <upward>0 0 1</upward>
+		      <link_name>${rotor_link}</link_name>
+		    </plugin>
+        </gazebo>
+    </xacro:macro>
+</robot>

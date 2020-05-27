@@ -1,0 +1,655 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+	<!-- Macro to add lamp -->
+	 <xacro:macro name="lamp" params="parent_link lamp_name range xyz rpy">
+	   <link name="${lamp_name}_link">
+	      <inertial>
+	        <mass value="0.1" />
+	        <origin xyz="0 0 0" rpy="0 0 0" />
+	        <inertia ixx="0.00001" ixy="0.0" ixz="0.0" iyy="0.00002" iyz="0.0" izz="0.00002" />
+	      </inertial>
+	   </link>
+	   <joint name="${lamp_name}_joint" type="fixed">
+	      <origin xyz="${xyz}" rpy="${rpy}"/>
+	      <parent link="${parent_link}" />
+	      <child link="${lamp_name}_link" />
+	   </joint>
+	   <gazebo reference="${lamp_name}_link">
+		  <light type='spot'>
+		    <pose>${xyz} ${rpy}</pose>
+		    <diffuse>1. 1. 1. 1</diffuse>
+		    <specular>0.1 0.1 0.1 1</specular>
+		    <direction>0 0 -1</direction>
+		    <attenuation>
+		      <range>${range}.</range>
+		      <constant>0.01</constant>
+		      <linear>0.07</linear>
+		      <quadratic>0.05</quadratic>
+		    </attenuation>
+		    <cast_shadows>0</cast_shadows>
+		    <spot>
+		      <inner_angle>0.2</inner_angle>
+		      <outer_angle>0.8</outer_angle>
+		      <falloff>1.8</falloff>
+		    </spot>
+		  </light>
+		</gazebo>
+	</xacro:macro>
+
+
+
+  <!-- Macro to add a camera. -->
+  <xacro:macro name="mono_camera_macro"
+    params="namespace parent_link camera_suffix frame_rate
+      horizontal_fov image_width image_height image_format min_distance
+      max_distance noise_mean noise_stddev enable_visual *geometry *origin">
+    <link name="${namespace}/camera_${camera_suffix}_link">
+<!--       <collision> -->
+<!--         <origin xyz="0 0 0" rpy="0 0 0" /> -->
+<!--         <geometry> -->
+<!--           <xacro:insert_block name="geometry" /> -->
+<!--         </geometry> -->
+<!--       </collision> -->
+      <xacro:if value="${enable_visual}">
+        <visual>
+          <origin xyz="0 0 0" rpy="0 ${pi/2} 0" />
+          <geometry>
+            <xacro:insert_block name="geometry" />
+          </geometry>
+          <material name="grey" />
+        </visual>
+      </xacro:if>
+      <inertial/>
+      <inertial>
+        <mass value="0.1" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <inertia ixx="0.00001" ixy="0.0" ixz="0.0" iyy="0.00002" iyz="0.0" izz="0.00002" />
+      </inertial>
+    </link>
+    <joint name="${namespace}/camera_${camera_suffix}_joint" type="fixed">
+      <xacro:insert_block name="origin" />
+      <parent link="${parent_link}" />
+      <child link="${namespace}/camera_${camera_suffix}_link" />
+    </joint>
+    <link name="${namespace}/camera_${camera_suffix}_optical_link" />
+    <joint name="${namespace}/camera_${camera_suffix}_optical_joint" type="fixed" >
+      <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}" />
+      <parent link="${namespace}/camera_${camera_suffix}_link" />
+      <child link="${namespace}/camera_${camera_suffix}_optical_link" />
+    </joint>
+    <gazebo reference="${namespace}/camera_${camera_suffix}_link">
+      <sensor type="camera" name="${namespace}_camera_${camera_suffix}">
+        <update_rate>${frame_rate}</update_rate>
+        <camera name="head">
+          <horizontal_fov>${horizontal_fov}</horizontal_fov>
+          <image>
+            <width>${image_width}</width>
+            <height>${image_height}</height>
+            <format>${image_format}</format>
+          </image>
+          <clip>
+            <near>${min_distance}</near>
+            <far>${max_distance}</far>
+          </clip>
+          <noise>
+            <type>gaussian</type>
+            <!-- Noise is sampled independently per pixel on each frame.
+                 That pixel's noise value is added to each of its color
+                 channels, which at that point lie in the range [0,1]. -->
+            <mean>${noise_mean}</mean>
+            <stddev>${noise_stddev}</stddev>
+          </noise>
+        </camera>
+        <plugin name="${namespace}_camera_${camera_suffix}_controller" filename="libgazebo_ros_camera.so">
+          <alwaysOn>true</alwaysOn>
+          <updateRate>${frame_rate}</updateRate>
+          <cameraName>camera_${camera_suffix}</cameraName>
+          <imageTopicName>image_raw</imageTopicName>
+          <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+          <frameName>camera_${camera_suffix}_optical_link</frameName>
+          <hackBaseline>0.0</hackBaseline>
+          <distortionK1>0.0</distortionK1>
+          <distortionK2>0.0</distortionK2>
+          <distortionK3>0.0</distortionK3>
+          <distortionT1>0.0</distortionT1>
+          <distortionT2>0.0</distortionT2>
+        </plugin>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+
+  <!-- Camera joint macro - just the joints, links, and collisions for a single
+       camera. -->
+  <xacro:macro name="camera_joint_macro"
+    params="namespace parent_link camera_name camera_suffix enable_visual *origin *geometry" >
+    <link name="${namespace}/${camera_name}_${camera_suffix}_link">
+<!--       <collision> -->
+<!--         <origin xyz="0 0 0" rpy="0 0 0" /> -->
+<!--         <geometry> -->
+<!--           <xacro:insert_block name="geometry" /> -->
+<!--         </geometry> -->
+<!--       </collision> -->
+      <xacro:if value="${enable_visual}">
+        <visual>
+          <origin xyz="0 0 0" rpy="0 0 0" />
+          <geometry>
+            <xacro:insert_block name="geometry" />
+          </geometry>
+          <material name="red" />
+        </visual>
+      </xacro:if>
+      <inertial>
+        <mass value="0.01" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <inertia ixx="0.00001" ixy="0.0" ixz="0.0" iyy="0.00002" iyz="0.0" izz="0.00002" />
+      </inertial>
+    </link>
+    <joint name="${namespace}/${camera_name}_${camera_suffix}_joint" type="fixed">
+      <xacro:insert_block name="origin" />
+      <parent link="${parent_link}" />
+      <child link="${namespace}/${camera_name}_${camera_suffix}_link" />
+    </joint>
+  </xacro:macro>
+
+  <!-- Camera sensor macro - just image parameters. -->
+  <xacro:macro name="camera_sensor_macro"
+    params="camera_suffix horizontal_fov image_width image_height
+      image_format min_distance max_distance noise_mean noise_stddev
+      baseline" >
+    <camera name="${camera_suffix}">
+      <pose>0 ${-baseline} 0 0 0 0</pose>
+      <horizontal_fov>${horizontal_fov}</horizontal_fov>
+      <image>
+        <width>${image_width}</width>
+        <height>${image_height}</height>
+        <format>${image_format}</format>
+      </image>
+      <clip>
+        <near>${min_distance}</near>
+        <far>${max_distance}</far>
+      </clip>
+      <noise>
+        <type>gaussian</type>
+        <!-- Noise is sampled independently per pixel on each frame.
+             That pixel's noise value is added to each of its color
+             channels, which at that point lie in the range [0,1]. -->
+        <mean>${noise_mean}</mean>
+        <stddev>${noise_stddev}</stddev>
+      </noise>
+    </camera>
+  </xacro:macro>
+
+  <!-- Macro to add a multicamera (stereo pair). -->
+  <xacro:macro name="stereo_camera_macro"
+    params="namespace camera_name parent_link frame_rate
+      horizontal_fov image_width image_height image_format min_distance
+      max_distance noise_mean noise_stddev enable_visual xyz_left xyz_right
+      baseline rpy  *geometry">
+    <!-- These are parameters for the left camera link and then the right
+        as well. -->
+    <xacro:camera_joint_macro 
+      namespace="${namespace}"
+      camera_name="${camera_name}"
+      parent_link="${parent_link}"
+      camera_suffix="left" 
+      enable_visual="${enable_visual}">
+      <origin xyz="${xyz_left}" rpy="${rpy}" />
+      <xacro:insert_block name="geometry" />
+    </xacro:camera_joint_macro>
+    <xacro:camera_joint_macro 
+      namespace="${namespace}"
+      camera_name="${camera_name}"
+      parent_link="${parent_link}"
+      camera_suffix="right" 
+      enable_visual="${enable_visual}">
+      <origin xyz="${xyz_right}" rpy="${rpy}" />
+      <xacro:insert_block name="geometry" />
+    </xacro:camera_joint_macro>
+
+    <link name="${namespace}/${camera_name}_left_optical_link" />
+    <joint name="${namespace}/${camera_name}_left_optical_joint" type="fixed" >
+      <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}" />
+      <parent link="${namespace}/${camera_name}_left_link" />
+      <child link="${namespace}/${camera_name}_left_optical_link" />
+    </joint>
+
+    <!-- Both cameras in the pair are anchored off the left camera frame. -->
+    <gazebo reference="${namespace}/${camera_name}_left_link">
+      <sensor type="multicamera" name="${namespace}_stereo_camera">
+        <update_rate>${frame_rate}</update_rate>
+
+        <!-- Here we set up the individual cameras of the stereo head. -->
+        <xacro:camera_sensor_macro camera_suffix="left"
+            horizontal_fov="${horizontal_fov}" image_width="${image_width}"
+            image_height="${image_height}" image_format="${image_format}"
+            min_distance="${min_distance}" max_distance="${max_distance}"
+            noise_mean="${noise_mean}" noise_stddev="${noise_stddev}"
+            baseline="0">
+        </xacro:camera_sensor_macro>
+
+        <xacro:camera_sensor_macro camera_suffix="right"
+            horizontal_fov="${horizontal_fov}" image_width="${image_width}"
+            image_height="${image_height}" image_format="${image_format}"
+            min_distance="${min_distance}" max_distance="${max_distance}"
+            noise_mean="${noise_mean}" noise_stddev="${noise_stddev}"
+            baseline="${baseline}">
+        </xacro:camera_sensor_macro>
+
+        <!-- Stereo controller, setting the transforms between the two cameras. -->
+        <plugin name="${namespace}_stereo_camera_controller" filename="libgazebo_ros_multicamera.so">
+          <alwaysOn>true</alwaysOn>
+          <updateRate>0.0</updateRate>
+          <cameraName>${camera_name}</cameraName>
+          <imageTopicName>image_raw</imageTopicName>
+          <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+          <frameName>${camera_name}_left_optical_link</frameName>
+          <hackBaseline>${baseline}</hackBaseline>
+          <distortionK1>0.0</distortionK1>
+          <distortionK2>0.0</distortionK2>
+          <distortionK3>0.0</distortionK3>
+          <distortionT1>0.0</distortionT1>
+          <distortionT2>0.0</distortionT2>
+        </plugin>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+
+
+
+    <!-- Macro to add 1-D Range sensor -->
+	<xacro:macro name="rangefinder" params="namespace parent_link lidar_name rate hor_samples hor_min_angle hor_max_angle ver_samples ver_min_angle ver_max_angle min_range max_range gaus_noise fov *origin" >
+      <link name="${lidar_name}_link">
+<!-- 	    <collision> -->
+<!-- 	      <origin xyz="0 0 0" rpy="0 0 0" /> -->
+<!-- 	      <geometry> -->
+<!-- 	        <box size="0.02 0.02 0.025"/> -->
+<!-- 	      </geometry> -->
+<!-- 	    </collision> -->
+		<visual>
+		  <origin xyz="0 0 0" rpy="0 0 0" />
+		  <geometry>
+		    <box size="0.02 0.02 0.025"/>
+		  </geometry>
+		  <material name="green" />
+		</visual>   
+		 <inertial>
+		   <mass value="0.01" />
+		   <origin xyz="0 0 0" rpy="0 0 0" />
+		   <inertia ixx="0.00001" ixy="0.0" ixz="0.0" iyy="0.00002" iyz="0.0" izz="0.00002" />
+		 </inertial>
+      </link>
+      
+	  <joint name="${lidar_name}_joint" type="fixed">
+	      <parent link="${parent_link}" />
+	      <child link="${lidar_name}_link" />
+	      <xacro:insert_block name="origin"/>
+	      <limit upper="0" lower="0" effort="0" velocity="0" />
+	  </joint>
+	  <gazebo reference="${lidar_name}_link">
+	      <sensor name="${lidar_name}_sensor" type="ray">
+              <visualize>false</visualize>
+              <update_rate>${rate}</update_rate>
+              <ray>
+                  <scan>
+                      <horizontal>
+                          <samples>${hor_samples}</samples>
+                          <resolution>1</resolution>
+                          <min_angle>${hor_min_angle}</min_angle>
+                          <max_angle>${hor_max_angle}</max_angle>
+                      </horizontal>
+                      <vertical>
+                          <samples>${ver_samples}</samples>
+                          <resolution>1</resolution>
+                          <min_angle>${ver_min_angle}</min_angle>
+                          <max_angle>${ver_max_angle}</max_angle>
+                      </vertical>
+                  </scan>
+                  <range>
+                      <min>${min_range}</min>
+                      <max>${max_range}</max>
+                      <resolution>0.02</resolution>
+                  </range>
+                  <noise>
+			          <type>gaussian</type>
+			          <mean>0.0</mean>
+			          <stddev>0.01</stddev>
+		          </noise>
+              </ray>
+              <plugin filename="libgazebo_ros_range.so" name="${lidar_name}_controller">
+                  <robotNamespace>${namespace}</robotNamespace>
+                  <topicName>${lidar_name}/range</topicName>
+                  <frameName>${lidar_name}_link</frameName>
+                  <alwaysOn>true</alwaysOn>
+                  <visualize>true</visualize>
+                  <gaussianNoise>${gaus_noise}</gaussianNoise>
+      			  <updateRate>${rate}</updateRate>
+         		  <radiation>infrared</radiation>
+				  <minRange>${min_range}</minRange>
+  				  <maxRange>${max_range}</maxRange>
+         		  <fov>${fov}</fov>
+              </plugin>
+          </sensor>
+	  </gazebo>
+    </xacro:macro>
+
+    <!-- Macro to add 2D lidar Hokuyo -->
+    <xacro:macro name="hokuyo" params="namespace parent_link lidar_name rate hor_samples hor_min_angle hor_max_angle  ver_samples ver_min_angle ver_max_angle max_range *origin" >
+      <link name="${lidar_name}_link">
+	    <collision>
+	      <origin xyz="0 0 0" rpy="0 0 0" />
+	      <geometry>
+	        <box size="0.02 0.02 0.025"/>
+	      </geometry>
+	    </collision>
+		<visual>
+		  <origin xyz="0 0 0" rpy="0 0 0" />
+		  <geometry>
+		    <box size="0.02 0.02 0.025"/>
+		  </geometry>
+		  <material name="green" />
+		</visual>   
+		 <inertial>
+		   <mass value="0.1" />
+		   <origin xyz="0 0 0" rpy="0 0 0" />
+		   <inertia ixx="0.00001" ixy="0.0" ixz="0.0" iyy="0.00002" iyz="0.0" izz="0.00002" />
+		 </inertial>
+      </link>
+      
+	  <joint name="${lidar_name}_joint" type="fixed">
+	      <parent link="${parent_link}" />
+	      <child link="${lidar_name}_link" />
+	      <xacro:insert_block name="origin"/>
+	      <limit upper="0" lower="0" effort="0" velocity="0" />
+	  </joint>
+	  <gazebo reference="${lidar_name}_link">
+	      <sensor name="${lidar_name}_sensor" type="gpu_ray">
+              <visualize>false</visualize>
+              <update_rate>${rate}</update_rate>
+              <ray>
+                  <scan>
+                      <horizontal>
+                          <samples>${hor_samples}</samples>
+                          <resolution>1</resolution>
+                          <min_angle>${hor_min_angle}</min_angle>
+                          <max_angle>${hor_max_angle}</max_angle>
+                      </horizontal>
+                      <vertical>
+                          <samples>${ver_samples}</samples>
+                          <resolution>1</resolution>
+                          <min_angle>${ver_min_angle}</min_angle>
+                          <max_angle>${ver_max_angle}</max_angle>
+                      </vertical>
+                  </scan>
+                  <range>
+                      <min>0.2</min>
+                      <max>${max_range}</max>
+                  </range>
+                  <noise>
+			          <type>gaussian</type>
+			          <mean>0.0</mean>
+			          <stddev>0.01</stddev>
+		          </noise>
+              </ray>
+              <plugin filename="libgazebo_ros_gpu_laser.so" name="${lidar_name}_controller">
+                  <robotNamespace>${namespace}</robotNamespace>
+                  <topicName>${lidar_name}/lidar/scan</topicName>
+                  <frameName>${lidar_name}_link</frameName>
+              </plugin>
+          </sensor>
+	  </gazebo>
+    </xacro:macro>
+    
+    <!-- Macro to add 3D lidar Velodyne -->
+    <xacro:macro name="velodyne" params="namespace parent_link lidar_name rate hor_samples hor_min_angle hor_max_angle  ver_samples ver_min_angle ver_max_angle min_range max_range gaus_noise *origin" >
+      <link name="${lidar_name}_link">
+	    <collision>
+	      <origin xyz="0 0 0" rpy="0 0 0" />
+	      <geometry>
+	        <box size="0.03 0.03 0.05"/>
+	      </geometry>
+	    </collision>
+		<visual>
+		  <origin xyz="0 0 0" rpy="0 0 0" />
+		  <geometry>
+		    <box size="0.03 0.03 0.05"/>
+		  </geometry>
+		  <material name="green" />
+		</visual>   
+		 <inertial>
+		   <mass value="0.1" />
+		   <origin xyz="0 0 0" rpy="0 0 0" />
+		   <inertia ixx="0.00001" ixy="0.0" ixz="0.0" iyy="0.00002" iyz="0.0" izz="0.00002" />
+		 </inertial>
+      </link>
+      
+	  <joint name="${lidar_name}_joint" type="fixed">
+	      <parent link="${parent_link}" />
+	      <child link="${lidar_name}_link" />
+	      <xacro:insert_block name="origin"/>
+	      <limit upper="0" lower="0" effort="0" velocity="0" />
+	  </joint>
+	  <gazebo reference="${lidar_name}_link">
+	      <sensor name="${lidar_name}_sensor" type="ray">
+              <visualize>false</visualize>
+              <update_rate>${rate}</update_rate>
+              <ray>
+                  <scan>
+                      <horizontal>
+                          <samples>${hor_samples}</samples>
+                          <resolution>1</resolution>
+                          <min_angle>${hor_min_angle}</min_angle>
+                          <max_angle>${hor_max_angle}</max_angle>
+                      </horizontal>
+                      <vertical>
+                          <samples>${ver_samples}</samples>
+                          <resolution>1</resolution>
+                          <min_angle>${ver_min_angle}</min_angle>
+                          <max_angle>${ver_max_angle}</max_angle>
+                      </vertical>
+                  </scan>
+                  <range>
+                      <min>${min_range}</min>
+                      <max>${max_range}</max>
+                  </range>
+                  <noise>
+			          <type>gaussian</type>
+			          <mean>0.0</mean>
+			          <stddev>0.0</stddev>
+		          </noise>
+              </ray>
+              <plugin filename="libgazebo_ros_velodyne_laser.so" name="${lidar_name}_controller">
+                  <robotNamespace>${namespace}</robotNamespace>
+                  <topicName>${lidar_name}/points</topicName>
+                  <frameName>${lidar_name}_link</frameName>
+   				  <min_range>${min_range}</min_range>
+				  <max_range>${max_range}</max_range>
+				  <gaussianNoise>${gaus_noise}</gaussianNoise>
+              </plugin>
+          </sensor>
+	  </gazebo>
+    </xacro:macro>
+    
+
+
+
+  <!-- Macro to add GazeboRos IMU. -->
+  <xacro:macro name="imu_sensor_macro"
+    params="namespace imu_suffix parent_link imu_topic
+      mass_imu_sensor rate gauss_noise
+      *inertia *origin">
+    <!-- IMU link -->
+    <link name="${namespace}/imu${imu_suffix}_link">
+      <inertial>
+        <xacro:insert_block name="inertia" />
+        <mass value="${mass_imu_sensor}" />  <!-- [kg] -->
+        <origin xyz="0 0 0" rpy="0 0 0" />
+      </inertial>
+    </link>
+    <!-- IMU joint -->
+    <joint name="${namespace}/imu${imu_suffix}_joint" type="revolute">
+      <xacro:insert_block name="origin" />
+      <parent link="${parent_link}" />
+      <child link="${namespace}/imu${imu_suffix}_link" />
+      <limit upper="0" lower="0" effort="0" velocity="0" />
+    </joint>
+	<gazebo reference="${namespace}/imu${imu_suffix}_link">
+	    <gravity>true</gravity>
+	    <sensor name="imu${imu_suffix}_sensor" type="imu">
+	      <always_on>true</always_on>
+	      <update_rate>${rate}</update_rate>
+	      <visualize>true</visualize>
+	      <topic>__default_topic__</topic>
+	      <plugin filename="libgazebo_ros_imu_sensor.so" name="imu${imu_suffix}_plugin">
+	        <topicName>${imu_topic}</topicName>
+	        <bodyName>imu${imu_suffix}_sensor</bodyName>
+	        <updateRateHZ>${rate}</updateRateHZ>
+	        <gaussianNoise>${gauss_noise}</gaussianNoise>
+	        <xyzOffset>0 0 0</xyzOffset>
+	        <rpyOffset>0 0 0</rpyOffset>
+	        <frameName>imu${imu_suffix}_link</frameName>
+	      </plugin>
+	      <pose>0 0 0 0 0 0</pose>
+	    </sensor>
+	</gazebo>
+  </xacro:macro>
+  
+
+
+
+
+  <!-- VI sensor macros -->
+  <!-- Macro to add a mono camera sensor. -->
+  <xacro:macro name="mono_camera"
+    params="namespace parent_link camera_suffix frame_rate xyz rpy">
+    <xacro:mono_camera_macro
+      namespace="${namespace}"
+      parent_link="${parent_link}"
+      camera_suffix="${camera_suffix}"
+      frame_rate="${frame_rate}"
+      horizontal_fov="1.3962634"
+      image_width="640"
+      image_height="480"
+      image_format="R8G8B8"
+      min_distance="0.02"
+      max_distance="30"
+      noise_mean="0.0"
+      noise_stddev="0.007"
+      enable_visual="true">
+	  <box size="0.01 0.025 0.01"/>
+      <origin xyz="${xyz}" rpy="${rpy}" />
+    </xacro:mono_camera_macro>
+  </xacro:macro>
+
+  <!-- Macro to add a stereo camera. -->
+  <xacro:macro name="stereo_camera"
+    params="namespace camera_name parent_link frame_rate xyz_left xyz_right baseline rpy max_range">
+    <xacro:stereo_camera_macro
+      namespace="${namespace}"
+      camera_name="${camera_name}"
+      parent_link="${parent_link}"
+      frame_rate="${frame_rate}"
+      horizontal_fov="1.3962634"
+      image_width="752"
+      image_height="480"
+      image_format="R8G8B8"
+      min_distance="0.02"
+      max_distance="${max_range}"
+      noise_mean="0.0"
+      noise_stddev="0.007"
+      enable_visual="false"
+      xyz_left="${xyz_left}"
+      xyz_right="${xyz_right}"
+      baseline="${baseline}"
+      rpy="${rpy}" >
+      <cylinder length="0.01" radius="0.007" />
+    </xacro:stereo_camera_macro>
+  </xacro:macro>
+
+  <!-- Macro to add a depth camera on the VI-sensor. -->
+  <xacro:macro name="camera_depth"
+    params="namespace parent_link camera_suffix frame_rate max_range xyz rpy">
+    <link name="${namespace}/camera_${camera_suffix}_link">
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <cylinder length="0.01" radius="0.007" />
+        </geometry>
+      </collision>
+      <inertial>
+        <mass value="0.1" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <inertia ixx="0.00001" ixy="0.0" ixz="0.0" iyy="0.00002" iyz="0.0" izz="0.00002" />
+      </inertial>
+    </link>
+    <joint name="${namespace}/camera_${camera_suffix}_joint" type="fixed">
+      <origin xyz="${xyz}" rpy="${rpy}" />
+      <parent link="${parent_link}" />
+      <child link="${namespace}/camera_${camera_suffix}_link" />
+      <limit upper="0" lower="0" effort="0" velocity="0" />
+    </joint>
+    <!-- Optical center of camera -->
+    <link name="${namespace}/camera_${camera_suffix}_optical_link" />
+    <joint name="${namespace}/camera_${camera_suffix}_optical_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}" />
+      <parent link="${namespace}/camera_${camera_suffix}_link" />
+      <child link="${namespace}/camera_${camera_suffix}_optical_link" />
+      <limit upper="0" lower="0" effort="0" velocity="0" />
+    </joint>
+    <gazebo reference="${namespace}/camera_${camera_suffix}_link">
+      <sensor type="depth" name="${namespace}_camera_${camera_suffix}">
+        <always_on>true</always_on>
+        <update_rate>${frame_rate}</update_rate>
+        <camera>
+          <horizontal_fov>2</horizontal_fov>
+          <image>
+            <format>L8</format>
+            <width>640</width>
+            <height>480</height>
+          </image>
+          <clip>
+            <near>0.01</near>
+            <far>${max_range}</far>
+          </clip>
+        </camera>
+        <plugin name="${namespace}_camera_{camera_suffix}" filename="libgazebo_ros_openni_kinect.so">
+          <alwaysOn>true</alwaysOn>
+          <baseline>0.11</baseline>
+          <updateRate>${frame_rate}</updateRate>
+          <cameraName>camera_${camera_suffix}</cameraName>
+          <imageTopicName>camera/image_raw</imageTopicName>
+          <cameraInfoTopicName>camera/camera_info</cameraInfoTopicName>
+          <depthImageTopicName>depth/disparity</depthImageTopicName>
+          <depthImageCameraInfoTopicName>depth/camera_info</depthImageCameraInfoTopicName>
+          <pointCloudTopicName>depth/points</pointCloudTopicName>
+          <frameName>camera_${camera_suffix}_optical_link</frameName>
+          <pointCloudCutoff>0.5</pointCloudCutoff>
+          <pointCloudCutoffMax>${max_range}</pointCloudCutoffMax>
+          <distortionK1>0.0</distortionK1>
+          <distortionK2>0.0</distortionK2>
+          <distortionK3>0.0</distortionK3>
+          <distortionT1>0.0</distortionT1>
+          <distortionT2>0.0</distortionT2>
+        </plugin>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+
+  <!-- Marco to add imu -->
+  <xacro:macro name="imu_sensor" params="namespace parent_link imu_suffix imu_topic rate gauss_noise xyz rpy">
+    <xacro:imu_sensor_macro
+      namespace="${namespace}"
+      parent_link="${parent_link}"
+      imu_suffix="${imu_suffix}"
+      imu_topic="${imu_topic}"
+      mass_imu_sensor="0.015"
+      rate="${rate}"
+      gauss_noise="${gauss_noise}">
+      <inertia ixx="0.00001" ixy="0.0" ixz="0.0" iyy="0.00001" iyz="0.0" izz="0.00001" />
+      <origin xyz="${xyz}" rpy="${rpy}" />
+    </xacro:imu_sensor_macro>
+  </xacro:macro>
+  
+
+</robot>

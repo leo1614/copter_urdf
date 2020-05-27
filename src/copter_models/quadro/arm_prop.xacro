@@ -1,0 +1,127 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+ <!-- Macro to add Arm and Prop -->
+ 
+ <xacro:macro name="quadro_arm" params="parent number rotor_name arm_xyz arm_rpy prop_xyz prop_rpy direction motor_number">
+        <xacro:property name="arm_name" value="arm_${number}" />
+        
+        <link name="${arm_name}">
+            <inertial>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <mass value="0.001" />
+                <inertia ixx="1e-05" ixy="0.0" ixz="0.0" iyy="1e-05" iyz="0.0" izz="1e-05" />
+            </inertial>
+            <collision name="${arm_name}_collision">
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <geometry>
+                    <box size="0.01 0.01 0.01" />
+                </geometry>
+                <surface>
+                    <contact>
+                        <ode>
+                            <min_depth>0.00001</min_depth>
+                            <max_vel>0</max_vel>
+                        </ode>
+                    </contact>
+                    <friction>
+                        <ode />
+                    </friction>
+                </surface>
+            </collision>
+            <visual name="${arm_name}_visual">
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <geometry>
+                    <mesh filename="${quadro_path}/armC${number}.stl" scale="1.5 1.5 1.5"/>
+                </geometry>
+                <material name="white" />
+            </visual>
+        </link>
+        
+        <joint name="${arm_name}_joint" type="revolute">
+            <child link="${arm_name}" />
+            <parent link="${parent}" />
+            <origin xyz="${arm_xyz}" rpy="${arm_rpy}" />
+            <limit effort="1000.0" lower="0" upper="0" velocity="0" />
+        </joint>
+        
+        <xacro:property name="prop_name" value="prop_${number}" />
+        
+        <link name="${prop_name}">
+            <inertial>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <mass value="0.001" />
+                <inertia ixx="1e-09" ixy="0.0" ixz="0.0" iyy="1e-09" iyz="0.0" izz="1e-09" />
+            </inertial>
+            <collision name="${prop_name}_collision">
+                <origin xyz="0 0 0.03" rpy="0 0 0"/>
+                <geometry>
+                    <cylinder length="0.02" radius="0.2275" />
+                </geometry>
+                <surface>
+                    <contact>
+                        <ode>
+                            <min_depth>0.00001</min_depth>
+                            <max_vel>0</max_vel>
+                        </ode>
+                    </contact>
+                    <friction>
+                        <ode />
+                    </friction>
+                </surface>
+            </collision>
+            <visual name="${prop_name}_visual">
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <geometry>
+                    <mesh filename="${quadro_path}/longrotor_propeller.stl" scale="1.9 1.9 1" />
+                </geometry>
+                <material name="grey" />
+            </visual>
+            <sensor name="my_contact" type="contact">
+                <gazebo>
+                    <plugin filename="libcontact_plugin.so" name="my_plugin" />
+                </gazebo>
+                <contact>
+                    <collision>prop_${number}_collision</collision>
+                </contact>
+            </sensor>
+        </link>
+        
+        <xacro:property name="prop_joint_name" value="${prop_name}_joint" />
+        
+        <joint name="${prop_joint_name}" type="continuous">
+            <child link="${prop_name}" />
+            <parent link="${arm_name}" />
+            <origin xyz="${prop_xyz}" rpy="${prop_rpy}" />
+            <axis xyz="0 0 1">
+                <dynamics>
+                    <spring_reference>0</spring_reference>
+                    <spring_stiffness>0</spring_stiffness>
+                </dynamics>
+                <use_parent_model_frame>1</use_parent_model_frame>
+            </axis>
+        </joint>
+        <gazebo>
+           <plugin filename="librotors_gazebo_motor_model.so" name="${rotor_name}_motor_model">
+                <robotNamespace />
+                <jointName>${prop_joint_name}</jointName>
+                <linkName>${prop_name}</linkName>
+                <turningDirection>${direction}</turningDirection>
+                <timeConstantUp>0.0125</timeConstantUp>
+                <timeConstantDown>0.025</timeConstantDown>
+                <maxRotVelocity>1100.0</maxRotVelocity>
+                <motorConstant>1e-05</motorConstant>
+                <momentConstant>0.06</momentConstant>
+                <commandSubTopic>${motor_command_topic}</commandSubTopic>
+                <motorNumber>${motor_number}</motorNumber>
+                <rotorDragCoefficient>0.000806428</rotorDragCoefficient>
+                <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+                <motorSpeedPubTopic>/motor_speed/${number}</motorSpeedPubTopic>
+                <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+            </plugin>
+         </gazebo>
+    </xacro:macro>
+
+
+</robot>

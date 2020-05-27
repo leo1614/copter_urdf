@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+ 
+ <xacro:macro name="leg" params="parent leg_id xyz rpy">
+ 		<xacro:property name="leg_link" value="${leg_id}_link"/>
+ 		        
+        <link name="${leg_link}">
+            <inertial>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <mass value="0.01" />
+                <inertia ixx="9.75e-06" ixy="0.0" ixz="0.0" iyy="0.000166704" iyz="0.0" izz="0.000167604" />
+            </inertial>
+
+            <visual name="${leg_id}_visual">
+		      <origin xyz="0 0 0" rpy="0 0 0"/>
+		      <geometry>
+		      	<cylinder radius="0.005" length="0.17"/>
+		      </geometry>
+
+	       </visual>
+
+        </link>
+
+	  	<gazebo reference="${leg_link}">
+		    <material>Gazebo/DarkGrey</material>
+		</gazebo>
+        
+        <joint name="${leg_id}_joint" type="fixed">
+	        <parent link="${parent}" />
+            <child link="${leg_link}" />
+            <origin xyz="${xyz}" rpy="${rpy}" />
+        </joint>
+    </xacro:macro>
+</robot>
